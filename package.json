@@ -1,14 +1,28 @@
 {
     "name": "vscode-radio-player",
     "displayName": "Radio Player",
-    "publisher": "vscode-radio-player",
+    "publisher": "good-code-solutions",
     "repository": {
         "type": "git",
-        "url": "https://github.com/vscode-radio-player/vscode-radio-player.git"
+        "url": "https://github.com/good-code-solutions/vscode-radio-player.git"
     },
     "description": "Play worldwide radio stations in VS Code",
     "icon": "media/icon.png",
-    "version": "1.0.3",
+    "version": "1.0.0",
+    "license": "MIT",
+    "homepage": "https://github.com/good-code-solutions/vscode-radio-player#readme",
+    "bugs": {
+        "url": "https://github.com/good-code-solutions/vscode-radio-player/issues"
+    },
+    "keywords": [
+        "radio",
+        "music",
+        "audio",
+        "streaming",
+        "player",
+        "internet radio",
+        "background music"
+    ],
     "engines": {
         "vscode": "^1.80.0"
     },
