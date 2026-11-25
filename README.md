@@ -1,6 +1,6 @@
 # VS Code Radio Player
 
-A simple, persistent radio player for VS Code. Play your favorite internet radio stations while you code!
+A VS Code extension for streaming internet radio while you work.
 
 ## Features
 
@@ -9,42 +9,50 @@ A simple, persistent radio player for VS Code. Play your favorite internet radio
 - 📻 **Custom Stations**: Add your own stream URLs via VS Code settings.
 - 🔇 **Unobtrusive**: The player engine hides in the Sidebar, staying out of your way.
 
-## How to Use
+## Usage
 
-1.  **Open Controls**: Click the `Radio` button in the Status Bar (bottom right).
-2.  **Play/Pause**: Use the menu to toggle playback.
-3.  **Change Station**: Select `Change Station` to pick from your list.
+Select **Radio Player** in the activity bar to open the player. Use the status bar **Radio** control to play, pause, or select a station.
 
-## Configuration
-
-The extension comes with a few sample stations (SomaFM, BBC, etc.). **You should add your own favorite stations!**
-
-1.  Open **Settings** (`Cmd+,` or `Ctrl+,`).
-2.  Search for `Radio Player`.
-3.  Click **Edit in settings.json** under `Radio Player: Custom Stations`.
-4.  Add your stations in the following format:
+Add stations in VS Code settings under `radioPlayer.customStations`:
 
 ```json
 "radioPlayer.customStations": [
-    {
-        "name": "My Favorite Station",
-        "url": "http://stream.example.com/radio.mp3"
-    },
-    {
-        "name": "Another Stream",
-        "url": "https://another-stream.com/playlist.m3u"
-    }
+  {
+    "name": "My Station",
+    "url": "https://example.com/radio.mp3",
+    "fallbackUrl": "https://example.com/backup.mp3",
+    "thumbnail": "https://example.com/artwork.jpg"
+  }
 ]
 ```
 
+Only `name` and `url` are required. The extension includes sample stations in the setting's default value.
+
+## Station directory
+
+Country and genre browsing uses the Radio Browser directory through the `radio-browser` package. Results are cached in memory for one hour. Radio Browser is a community service and may be unavailable.
+
+Country markers use bundled Natural Earth boundary data. HLS streams require browser Media Source support and cross-origin access from the stream host. Other stream formats depend on codecs supported by VS Code's embedded browser.
+
+## Development
+
+```sh
+npm install
+npm run compile
+npm run lint
+```
+
+The compile script builds the styles, webview bundle, and extension bundle.
+
 ## Requirements
 
-- VS Code 1.80.0 or higher.
-- Internet connection for streaming.
+- VS Code 1.80.0 or later.
+- Internet access for streaming and directory browsing.
 
-## Known Issues
+## License
 
-- Some streams (especially HLS/m3u8) might not play depending on the codec support in VS Code's internal browser (Chromium). MP3 and OGG streams are most reliable.
+The extension is licensed under MIT; see [LICENSE](./LICENSE). Third-party notices are provided in [LICENSE-hls.js.txt](./LICENSE-hls.js.txt), [LICENSE-natural-earth.txt](./LICENSE-natural-earth.txt), and [LICENSE-radio-browser.txt](./LICENSE-radio-browser.txt).
+
 
 ---
 

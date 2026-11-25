@@ -1,50 +1,29 @@
 import * as vscode from 'vscode';
 import { RadioPlayerViewProvider } from './RadioPlayerViewProvider';
+import { PlaybackBroker } from './PlaybackBroker';
+import { RadioBrowserApi } from './RadioBrowserApi';
 
 let mainStatusBarItem: vscode.StatusBarItem;
-let playPauseStatusBarItem: vscode.StatusBarItem;
-let stationStatusBarItem: vscode.StatusBarItem;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Radio Player extension is now active!');
 
-    // 1. Main "Radio" button (always visible)
-    mainStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    mainStatusBarItem.text = '$(radio-tower) Radio';
-    mainStatusBarItem.command = 'vscode-radio-player.open';
-    mainStatusBarItem.tooltip = 'Open Radio Player';
-    console.log('Radio Player extension is now active!');
-
-    // Register WebviewViewProvider
-    const provider = new RadioPlayerViewProvider(context.extensionUri);
+    const provider = new RadioPlayerViewProvider(context.extensionUri, new RadioBrowserApi());
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(RadioPlayerViewProvider.viewType, provider, {
-            webviewOptions: { retainContextWhenHidden: true } // CRITICAL: This is the official API way
+            webviewOptions: { retainContextWhenHidden: true }
         })
     );
 
-    // 1. Main "Radio" button (always visible)
     mainStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     mainStatusBarItem.text = '$(radio-tower) Radio';
     mainStatusBarItem.command = 'vscode-radio-player.open';
     mainStatusBarItem.tooltip = 'Open Radio Controls';
     mainStatusBarItem.show();
 
-    // 2. Play/Pause button (visible when player is active)
-    playPauseStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
-    playPauseStatusBarItem.text = '$(play)';
-    playPauseStatusBarItem.command = 'vscode-radio-player.play';
-    playPauseStatusBarItem.tooltip = 'Play Radio';
-
-    // 3. Station Name (visible when playing)
-    stationStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 98);
-    stationStatusBarItem.command = 'vscode-radio-player.pickStation';
-    stationStatusBarItem.tooltip = 'Select Station';
-
-    // Register Commands
     context.subscriptions.push(
         vscode.commands.registerCommand('vscode-radio-player.open', () => {
-            showRadioMenu(context);
+            showRadioMenu();
         }),
         vscode.commands.registerCommand('vscode-radio-player.play', () => {
             RadioPlayerViewProvider.instance?.play();
@@ -53,28 +32,30 @@ export function activate(context: vscode.ExtensionContext) {
             RadioPlayerViewProvider.instance?.pause();
         }),
         vscode.commands.registerCommand('vscode-radio-player.pickStation', () => {
-            pickStation(context);
-        })
+            pickStation();
+        }),
     );
 
-    // Listen for status updates
-    context.subscriptions.push(
-        RadioPlayerViewProvider.onStatusUpdate(status => {
-            updateStatusBar(status);
-        })
-    );
+    // Apply commands received by the playback owner to its webview.
+    PlaybackBroker.instance.applyCommand = msg => {
+        const provider = RadioPlayerViewProvider.instance;
+        if (!provider) {
+            return;
+        }
+        if (msg.command === 'setStation' && msg.station) {
+            provider.applyBrokerCommand(msg);
+        } else if (msg.command === 'play' || msg.command === 'pause') {
+            provider.applyBrokerCommand({ command: msg.command });
+        }
+    };
 
-    context.subscriptions.push(mainStatusBarItem, playPauseStatusBarItem, stationStatusBarItem);
+    PlaybackBroker.instance.ensureStarted();
+
+    context.subscriptions.push(mainStatusBarItem);
 }
 
-async function showRadioMenu(context: vscode.ExtensionContext) {
-    // We don't need to force show the view, it should be running in background if enabled
-    // But if it's not initialized, we might need to focus it once?
-    // Actually, if user never opened the sidebar view, the provider might not be resolved.
-    // We can try to execute command to focus it if instance is missing, but let's assume user has it in sidebar.
-
+async function showRadioMenu() {
     if (!RadioPlayerViewProvider.instance) {
-        // Try to wake it up by focusing the view
         await vscode.commands.executeCommand('radioPlayerView.focus');
     }
 
@@ -99,7 +80,7 @@ async function showRadioMenu(context: vscode.ExtensionContext) {
             RadioPlayerViewProvider.instance?.pause();
             break;
         case 'station':
-            pickStation(context);
+            pickStation();
             break;
         case 'show':
             vscode.commands.executeCommand('radioPlayerView.focus');
@@ -107,7 +88,7 @@ async function showRadioMenu(context: vscode.ExtensionContext) {
     }
 }
 
-async function pickStation(context: vscode.ExtensionContext) {
+async function pickStation() {
     const config = vscode.workspace.getConfiguration('radioPlayer');
     const stations = config.get<any[]>('customStations', []);
 
@@ -125,40 +106,11 @@ async function pickStation(context: vscode.ExtensionContext) {
         if (!RadioPlayerViewProvider.instance) {
             await vscode.commands.executeCommand('radioPlayerView.focus');
         }
-        RadioPlayerViewProvider.instance?.setStation(selected.station.name, selected.station.url);
-    }
-}
-
-function updateStatusBar(status: { isPlaying: boolean, stationName?: string }) {
-    if (status.isPlaying) {
-        playPauseStatusBarItem.text = '$(debug-pause)';
-        playPauseStatusBarItem.command = 'vscode-radio-player.pause';
-        playPauseStatusBarItem.tooltip = 'Pause Radio';
-        playPauseStatusBarItem.show();
-
-        if (status.stationName) {
-            stationStatusBarItem.text = status.stationName;
-            stationStatusBarItem.show();
-        }
-    } else {
-        playPauseStatusBarItem.text = '$(play)';
-        playPauseStatusBarItem.command = 'vscode-radio-player.play';
-        playPauseStatusBarItem.tooltip = 'Play Radio';
-
-        // Keep showing play button if we have a station selected, otherwise hide if closed
-        if (status.stationName) {
-            playPauseStatusBarItem.show();
-            stationStatusBarItem.text = status.stationName;
-            stationStatusBarItem.show();
-        } else {
-            playPauseStatusBarItem.hide();
-            stationStatusBarItem.hide();
-        }
+        RadioPlayerViewProvider.instance?.setStation(selected.station);
     }
 }
 
 export function deactivate() {
+    PlaybackBroker.instance.dispose();
     mainStatusBarItem?.dispose();
-    playPauseStatusBarItem?.dispose();
-    stationStatusBarItem?.dispose();
 }

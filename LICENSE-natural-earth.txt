@@ -1,0 +1,4 @@
+The country boundary data in media/world-countries.json is from Natural Earth,
+https://www.naturalearthdata.com/.
+
+Natural Earth data is public domain. It may be used freely for any purpose.

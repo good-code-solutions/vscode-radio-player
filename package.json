@@ -8,7 +8,7 @@
     },
     "description": "Play worldwide radio stations in VS Code",
     "icon": "media/icon.png",
-    "version": "1.0.0",
+    "version": "1.0.4",
     "license": "MIT",
     "homepage": "https://github.com/good-code-solutions/vscode-radio-player#readme",
     "bugs": {
@@ -30,7 +30,7 @@
         "Other"
     ],
     "activationEvents": [],
-    "main": "./out/extension.js",
+    "main": "./out/extension.bundle.js",
     "contributes": {
         "viewsContainers": {
             "activitybar": [
@@ -76,6 +76,34 @@
             "properties": {
                 "radioPlayer.customStations": {
                     "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "name",
+                            "url"
+                        ],
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Name shown in the player"
+                            },
+                            "url": {
+                                "type": "string",
+                                "format": "uri",
+                                "description": "Audio stream URL"
+                            },
+                            "fallbackUrl": {
+                                "type": "string",
+                                "format": "uri",
+                                "description": "Optional alternate stream URL"
+                            },
+                            "thumbnail": {
+                                "type": "string",
+                                "format": "uri",
+                                "description": "Optional station artwork URL"
+                            }
+                        }
+                    },
                     "default": [
                         {
                             "name": "SomaFM - Groove Salad",
@@ -83,7 +111,7 @@
                         },
                         {
                             "name": "BBC Radio 1",
-                            "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_one"
+                            "url": "https://as-hls-ww.live.cf.md.bbci.co.uk/pool_01505109/live/ww/bbc_radio_one/bbc_radio_one.isml/bbc_radio_one-audio%3d128000.norewind.m3u8"
                         },
                         {
                             "name": "Lofi Hip Hop",
@@ -97,21 +125,33 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
+        "compile": "npm run compile:styles && npm run compile:webview && tsc -p ./ && npm run compile:extension",
+        "compile:styles": "sass media/style.scss media/style.css --no-source-map",
+        "compile:webview": "esbuild media/main.js --bundle --minify --platform=browser --target=es2020 --outfile=media/main.bundle.js",
+        "compile:extension": "esbuild out/extension.js --bundle --platform=node --target=node16 --external:vscode --outfile=out/extension.bundle.js",
         "watch": "tsc -watch -p ./",
-        "pretest": "npm run compile && npm run lint",
+        "watch:styles": "sass --watch media/style.scss:media/style.css",
         "lint": "eslint src --ext ts",
-        "test": "node ./out/test/runTest.js"
+        "test": "npm run compile && npm run lint"
     },
     "devDependencies": {
-        "@types/vscode": "^1.80.0",
         "@types/glob": "^8.1.0",
         "@types/node": "20.2.5",
+        "@types/vscode": "^1.80.0",
         "@typescript-eslint/eslint-plugin": "^5.59.8",
         "@typescript-eslint/parser": "^5.59.8",
+        "@vscode/test-electron": "^2.3.2",
+        "esbuild": "^0.28.2",
         "eslint": "^8.41.0",
         "glob": "^8.1.0",
-        "typescript": "^5.1.3",
-        "@vscode/test-electron": "^2.3.2"
+        "globe.gl": "^2.46.2",
+        "lucide": "^1.66.0",
+        "sass": "^1.107.1",
+        "three": "^0.187.0",
+        "typescript": "^5.1.3"
+    },
+    "dependencies": {
+        "hls.js": "^1.7.4",
+        "radio-browser": "^2.2.3"
     }
 }
